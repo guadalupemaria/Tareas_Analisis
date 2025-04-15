@@ -1,0 +1,302 @@
+---
+title: "Introducción a las Series Temporales en R"
+author: "Maria Guadalupe Ramirez Calvillo"
+date: "Abril 10 "
+output: 
+  html_document:
+    toc: true
+    toc_depth: 1
+    theme: cerulean
+---
+<style>
+body {
+text-align: justify}
+</style>
+
+```{r}
+options(xts.warn_dplyr_breaks_lag = FALSE)
+library(dplyr)
+library(knitr)
+library(tidyverse)
+library(pracma)
+library(plotly)
+library(MASS)
+library(car)
+library(corrplot)
+library(rgl)
+library(scatterPlotMatrix)
+library(openxlsx)
+library(readxl)
+library(writexl)
+library(quantmod)
+library(qgraph)
+library(xts)
+library(zoo)
+library(dygraphs)
+knitr::knit_hooks$set(webgl = hook_webgl)
+```
+
+```{r}
+Empresas_data <- read_xlsx("tarea_3_precio_cierre_df.xlsx")
+
+```
+
+
+
+
+
+
+## Explicación de las empresas elegidas:
+
+Me parece importante saber la relacion que existe en estas empresas  muy grandes (muchas de ellas del sector tecnológico), que sus acciones cotizan en el mercado de valores, principalmente en el NASDAQ o NYSE.
+
+-Apple Inc
+-Amazon.com, Inc.
+-Meta Platforms, Inc. (antes Facebook)
+-Alphabet Inc. (Clase C, matriz de Google)
+-NVIDIA Corporation
+-Netflix, Inc.
+-Advanced Micro Devices, Inc
+-Microsoft Corporation
+-The Walt Disney Company
+-The Boeing Company
+
+##Comportamiento del precio de cierre de las empresas 
+```{r}
+begin_date = "2020-01-01"
+end_date = "2025-03-03"
+tickers <- c("AAPL", "AMZN", "META", "GOOG", "NVDA", "NFLX", "ADM", "MSFT", "DIS", "BA")
+getSymbols(tickers, src = "yahoo", from = begin_date, to = end_date, periodicity = "daily")
+class(AAPL)
+
+```
+
+```{r}
+lista <- lapply(tickers, function(x) Cl(get(x)))
+precio_cierre <- do.call(merge,lista)
+
+dygraph(precio_cierre)
+saveRDS(precio_cierre, "precio_cierre.RDS")
+# La siguiente función sera para leer el objeto precio_cierre.RDS
+#precio_cierre <- readRDS("precio_cierre.RDS")
+```
+
+##Analisis de la correlación
+
+```{r}
+# Matriz de correlación
+cor_matrix <- cor(Empresas_data[,-1], use = "complete.obs")
+print("Matriz de correlación:")
+print(cor_matrix)
+```
+```{r}
+# Visualización
+corrplot(cor_matrix, 
+         method = "color",
+         type = "upper", 
+         tl.srt = 45,
+         tl.cex = 0.8,
+title = "Matriz de Correlaciones Significativas",
+         mar = c(0,1,2,0))
+```
+```{r}
+cor_matrix <- cor(Empresas_data[,-1], use = "complete.obs")
+qgraph(cor_matrix, 
+       layout = "spring", 
+       labels = colnames(cor_matrix),
+       title = "Matriz de Correlaciones Significativas")
+```
+#####Interpretación del gráfico qgraph
+
+En este gráfico el ancho de las líneas representa el grado de correlación entre las empresas, ya sea correlación fuerte la podemos observar el las líneas más gruesas y la correlación débil la podemos obsevar en las líneas más delgadas, el color nos ayuda a identificar si las correlaciones son positivas las líneas son color verde o si las correlaciones son negativas las líneas son rosas; la distancia entre los nodos nos ayuda a ver aquellas variables con relaciones más fuertes que tienden a juntarse más cerca.
+
+#####Interpretación del gráfico qgraph de las empresas:
+
+Podemos observar en este grafico que existe, entre las empresas NFLX, AMZN, META, GOOG, AAPL, MSFT, AMD y NVDA una fuerte correlación positiva pues el grosor de las líneas y la cercanía entre sus nodos así lo ejemplifican.
+
+Por otra parte, las empresas BA y DIS muestra una muy debil correlación, ya sea positiva o negativa, con todas las demas empreas.
+
+
+
+## Análisis de Regresiones Lineales Simples
+
+##### AAPL (ExxonMobil) -> META (Valero Energy)
+
+```{r}
+modelo_AAPL_META <- lm(AAPL.Close ~ META.Close, data = Empresas_data)
+summary(modelo_AAPL_META)
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(Empresas_data, aes(x = META.Close, y = AAPL.Close)) +
+  geom_point(color = "pink") +  # Puntos en color cyan
+  geom_smooth(method = "lm", col = "brown") +  # Línea de regresión en color verde
+  labs(title = "Regresión Lineal: META → AAPL", 
+       x = " (META)", 
+       y = " (AAPL)") + 
+  theme(plot.title = element_text(hjust = 0.10))  # Centrar el título
+```
+
+
+#Analisis
+Existe una relación estadísticamente significativa y positiva entre los precios de cierre de META y AAPL.
+
+Aunque el modelo no explica toda la variabilidad (R² = 0.51), sí muestra que los movimientos en META tienen capacidad predictiva moderada sobre AAPL.
+
+
+## GOOG -> AMZN
+```{r}
+
+modelo_GOOG_AMZN<- lm(GOOG.Close ~ AMZN.Close, data = Empresas_data)
+summary(modelo_GOOG_AMZN)
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(Empresas_data, aes(x = GOOG.Close, y = AMZN.Close)) +
+  geom_point(color = "pink") +  # Puntos en color cyan
+  geom_smooth(method = "lm", col = "brown") +  # Línea de regresión en color azul
+  labs(title = "Regresión Lineal: GOOG → AMZN", 
+       x = "Goggle(GOOG)", 
+       y = "Amazon (AMZN)") + 
+  theme(plot.title = element_text(hjust = 0.10))  # Centrar el título
+```
+
+##Analisis
+Empresas como Google y Amazon son tecnológicas de gran capitalización, que suelen estar influenciadas por factores macroeconómicos similares (tasas de interés, confianza del consumidor, innovación tecnológica).
+
+#Relación positiva clara:
+Se puede ver una tendencia ascendente entre GOOG y AMZN. Esto sugiere que cuando sube el precio de GOOG, tiende a subir también el de AMZN, y viceversa.
+
+#Agrupación de puntos: 
+Hay cierta dispersión, pero una buena parte de los puntos sigue la línea de regresión, lo que indicaría una correlación positiva.
+
+
+##### BP (BP) -> MMM (3M)
+
+```{r}
+modelo_NVDA_NFLX <- lm(NVDA.Close ~ NFLX.Close, data = Empresas_data)
+summary(modelo_NVDA_NFLX)
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(Empresas_data, aes(x = NFLX.Close, y = NVDA.Close)) +
+  geom_point(color = "pink") +  # Puntos en color cyan
+  geom_smooth(method = "lm", col = "brown") +  # Línea de regresión en color azul
+  labs(title = "Regresión Lineal: NVDA → NFLX", 
+       x = "(NFLX)", 
+       y = "NVDA") + 
+  theme(plot.title = element_text(hjust = 0.10))  # Centrar el título
+```
+## Analisis
+En mercados financieros, empresas como NFLX y NVDA pueden moverse de forma similar por factores macroeconómicos, tendencias del mercado o por pertenecer a índices comunes (como el NASDAQ 100), aunque no tengan vínculos directos entre sí.
+
+#Línea de regresión (marrón)
+Esta línea es el resultado de aplicar un modelo lineal que minimiza la distancia entre sí misma y los puntos reales (lo que se llama “mínimos cuadrados”).
+
+-Si la línea es ascendente, significa que cuando sube NFLX, tiende a subir NVDA.
+
+-Si es descendente, la relación sería inversa: cuando sube NFLX, baja NVDA.
+
+La pendiente de esta línea indica cuánto cambia el precio de NVDA por cada unidad de cambio en el precio de NFLX.
+
+
+
+## Análisis de Regresiones Lineales Múltiples
+
+El VIF (Variance Inflation Factor) mide cuánto aumenta la varianza de un coeficiente debido a la multicolinealidad.
+
+Interpretación del VIF:
+
+VIF < 5 → No hay multicolinealidad grave.
+
+VIF entre 5 y 10 → Hay multicolinealidad moderada.
+
+VIF > 10 → Multicolinealidad severa (considera eliminar variables o combinarlas).
+
+##### (META.Close, AAPL.Close) ->  BA.Close
+```{r}
+modelo_BA <- lm(BA.Close ~ META.Close + AAPL.Close, data = Empresas_data)
+summary(modelo_BA)  
+```
+
+```{r}
+# Representación 3D con scatter3d()
+scatter3d(BA.Close ~ META.Close + AAPL.Close, data = Empresas_data, 
+          fit = "linear", residuals = TRUE, bg = "white", axis.scales = TRUE, 
+          grid = TRUE, ellipsoid = FALSE)
+```
+
+```{r}
+#Cálculo del VIF
+vif(modelo_BA)
+```
+
+##Analisis
+
+-Boeing es del sector aeroespacial, mientras que Meta y Apple son tecnológicas. Aunque no sean del mismo sector, puede haber conexiones indirectas por el mercado bursátil (NASDAQ, ciclos económicos, comportamiento general del mercado).
+
+
+
+
+##### (GOOG.Close, AMZN.Close) ->  AMD.Close
+```{r}
+modelo_AMD <- lm(AMD.Close ~ GOOG.Close + AMZN.Close, data = Empresas_data)
+summary(modelo_AMD)  
+```
+
+```{r}
+# Representación 3D con scatter3d()
+scatter3d(AMD.Close ~ GOOG.Close + AMZN.Close, data = Empresas_data, 
+          fit = "linear", residuals = TRUE, bg = "white", axis.scales = TRUE, 
+          grid = TRUE, ellipsoid = FALSE)
+```
+
+```{r}
+#Cálculo del VIF
+vif(modelo_AMD)
+```
+
+##Analisis
+
+-El plano de regresión encaja bastante bien con los puntos.
+
+-Esto sugiere que AMD tiene una relación significativa con Google y Amazon, probablemente porque todas son tecnológicas y comparten patrones de mercado.
+
+-Aquí el modelo lineal parece tener buen poder predictivo.
+
+
+
+##### (NFLX.Close, NVDA.Close) ->  DIS.Close
+```{r}
+modelo_DIS <- lm(DIS.Close ~ NFLX.Close + NVDA.Close, data = Empresas_data)
+summary(modelo_DIS)  
+```
+
+```{r}
+# Representación 3D con scatter3d()
+scatter3d(DIS.Close ~ NFLX.Close + NVDA.Close, data = Empresas_data, 
+          fit = "linear", residuals = TRUE, bg = "white", axis.scales = TRUE, 
+          grid = TRUE, ellipsoid = FALSE)
+```
+
+```{r}
+#Cálculo del VIF
+vif(modelo_DIS)
+```
+##Analisis
+
+-El plano de regresión muestra cómo los precios de Netflix y Nvidia están relacionados con el precio de Disney.
+
+-Se observa una cierta alineación, lo que indica una relación positiva y visible, especialmente con Netflix.
+
+-Esto apoya la idea de que las acciones del sector entretenimiento y tecnología pueden compartir tendencias.
+
+
+
+
+
+
+
+
+
+
