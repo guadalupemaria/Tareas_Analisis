@@ -1,0 +1,328 @@
+---
+title: "Tarea_3_inegi_subdata_"
+author: "Maria Guadalupe Ramirez Calvillo"
+date: "2025-04-30"
+output: html_document
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(knitr)
+library(tidyverse)
+library(pracma)
+library(plotly)
+library(MASS)
+library(car)
+library(corrplot)
+library(rgl)
+library(scatterPlotMatrix)
+library(openxlsx)
+library(readxl)
+library(writexl)
+library(quantmod)
+knitr::knit_hooks$set(webgl = hook_webgl)
+```
+
+
+# Cargar el archivo de datos INEGI
+
+```{r}
+
+inegi_data <- read_xlsx("inegi_subdata_Tarea_3.xlsx")
+```
+
+
+
+
+## Corrrelación
+
+```{r}
+# Selecciono solo las columnas numéricas (excluyendo 'Periodo')
+data_numeric <- inegi_data %>%  select_if(is.numeric)
+```
+
+
+
+```{r}
+# Calculo la matriz de correlación
+corr_matrix <- cor(data_numeric, use = "complete.obs")
+print("Matriz de correlación:")
+print(corr_matrix)
+
+```
+
+
+## Regresiones Lineales Simples
+
+##### IGAE ~ Actividades_Terciarias
+```{r}
+# Ejemplo 1: Regresión simple para IGAE ~ Actividad_Industrial
+modelo_igae <- lm(IGAE ~ Actividades_Terciarias, data = inegi_data)
+summary(modelo_igae)  # Muestra el resumen del modelo
+```
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Graficar la relación y la línea de regresión
+ggplot(inegi_data, aes(x = Actividades_Terciarias, y = IGAE)) +
+  geom_point(color = "violet") +
+  geom_smooth(method = "lm", se = TRUE, color = "yellow") +
+  labs(title = "Regresión Lineal: IGAE ~ Actividades_Terciarias",
+       x = "Actividades_Terciarias",
+       y = "IGAE") +
+  theme(plot.title = element_text(hjust = 0.8))  # Centrar título
+```
+#Explicación
+-Relación positiva: El coeficiente de pendiente positivo indica que las variables están positivamente correlacionadas (ambas aumentan o disminuyen juntas).
+-Fuerza de la correlación: Muy fuerte. El coeficiente de correlación de Pearson estimado es aproximadamente $r \approx \sqrt{0.908} \approx 0.95$, lo cual indica una asociación casi perfecta entre ambas series. En otras palabras, el comportamiento del índice terciario coincide muy de cerca con el del IGAE global.
+
+
+
+##### IVF_Construccion ~ Actividad_Industrial
+
+```{r}
+# Ejemplo 2: Regresión simple para IVF_Construccion ~ Actividad_Industrial
+modelo_construccion <- lm(IVF_Construccion ~ Actividad_Industrial, data = inegi_data)
+summary(modelo_construccion)
+
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Graficar la relación y la línea de regresión
+ggplot(inegi_data, aes(x = Actividad_Industrial, y = IVF_Construccion )) +
+  geom_point(color = "violet") +
+  geom_smooth(method = "lm", se = TRUE, color = "yellow") +
+  labs(title = "Regresión Lineal: IVF_Construccion vs. Actividad_Industrial",
+       x = "Actividad_Industrial",
+       y = "IVF_Construccion") +
+  theme(plot.title = element_text(hjust = 0.8))  # Centrar título
+```
+#Explicación
+La gráfica muestra una nube de puntos ascendente, es decir, una relación creciente entre las dos variables: conforme aumenta el índice de actividad industrial, también lo hace el índice de volumen físico en la construcción.
+-La línea de regresión se ajusta adecuadamente a la tendencia general de los datos, confirmando la relación positiva.
+
+
+#### Importaciones_No_Petroleras ~ IP_Consumidor
+
+```{r}
+# Ejemplo 2: Regresión simple para Importaciones_No_Petroleras ~ IP_Consumidor
+ 
+modelo_construccion <- lm(Importaciones_No_Petroleras ~ IP_Consumidor, data = inegi_data)
+summary(modelo_construccion)
+
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Graficar la relación y la línea de regresión
+ggplot(inegi_data, aes(x = IP_Consumidor, y = Importaciones_No_Petroleras )) +
+  geom_point(color = "violet") +
+  geom_smooth(method = "lm", se = TRUE, color = "yellow") +
+  labs(title = "Regresión Lineal: Importaciones_No_Petroleras vs. IP_Consumidor ",
+       x = "IP_Consumidor",
+       y = "Importaciones_No_Petroleras") +
+  theme(plot.title = element_text(hjust = 0.8))  # Centrar título
+```
+#Explicación
+El gráfico muestra una dispersión de puntos (diagrama de dispersión) en donde cada punto representa una observación empírica de los valores de IP_Consumidor (eje X) y Importaciones No Petroleras (eje Y). 
+
+- Tendencia positiva aparente: La línea de regresión tiene pendiente positiva (de izquierda a derecha asciende), lo cual sugiere que a mayor IP_Consumidor, mayores son las Importaciones No Petroleras. Esto podría interpretarse como que cuando la actividad del consumidor (o su capacidad de gasto) aumenta, se incrementa también la demanda de productos importados no petroleros.
+
+
+#### Precio_Promedio_Petroleo ~ Exportaciones_Totales
+
+```{r}
+# Ejemplo 3: Regresión simple para Precio_Promedio_Petroleo ~ Exportaciones_Totales
+ 
+modelo_construccion <- lm(Precio_Promedio_Petroleo ~ Exportaciones_Totales, data = inegi_data)
+summary(modelo_construccion)
+
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Graficar la relación y la línea de regresión
+ggplot(inegi_data, aes(x = Exportaciones_Totales, y = Precio_Promedio_Petroleo )) +
+  geom_point(color = "violet") +
+  geom_smooth(method = "lm", se = TRUE, color = "yellow") +
+  labs(title = "Regresión Lineal: Precio_Promedio_Petroleo vs. Exportaciones_Totales ",
+       x = " Exportaciones_Totales",
+       y = "Precio_Promedio_Petroleo") +
+  theme(plot.title = element_text(hjust = 0.8))  # Centrar título
+```
+
+#Explicaciön
+- Tendencia positiva aparente: El gráfico muestra una nube de puntos en donde se puede observar una tendencia creciente. Es decir, a medida que aumentan las Exportaciones_Totales, también tiende a aumentar el Precio_Promedio_Petroleo.
+- Línea de regresión (amarilla): La línea ajustada por el método de mínimos cuadrados (regresión lineal) confirma esta relación positiva. El área sombreada alrededor de la línea representa el intervalo de confianza, lo que da una idea de la incertidumbre del ajuste.
+- Dispersión: Aunque hay una tendencia positiva, es importante observar qué tan dispersos están los puntos respecto a la línea. Si la nube de puntos está muy dispersa, la relación podría ser débil a pesar de ser positiva.
+
+#### Tipo_Cambio_Nominal vs. TIIE
+
+```{r}
+# Ejemplo 4: Regresión simple para Tipo_Cambio_Nominal ~ TIIE
+ 
+modelo_construccion <- lm(Tipo_Cambio_Nominal ~ TIIE, data = inegi_data)
+summary(modelo_construccion)
+
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Graficar la relación y la línea de regresión
+ggplot(inegi_data, aes(x = TIIE, y = Tipo_Cambio_Nominal )) +
+  geom_point(color = "violet") +
+  geom_smooth(method = "lm", se = TRUE, color = "yellow") +
+  labs(title = "Regresión Lineal: Tipo_Cambio_Nominal vs. TIIE",
+       x = "TIIE",
+       y = "Tipo_Cambio_Nominal") +
+  theme(plot.title = element_text(hjust = 0.8)) # Centrar título
+```
+
+#Explicación 
+Este modelo puede reflejar un fenómeno común en economías emergentes:
+cuando la TIIE aumenta (como medida para controlar inflación o atraer capitales), el tipo de cambio nominal también puede subir, especialmente si el alza de tasas refleja inestabilidad económica o expectativas de devaluación. Sin embargo, esta relación también puede implicar causalidad inversa o influencias externas como inflación o política monetaria externa.
+
+
+
+## Regreciones Lineales Múltiples
+
+
+
+```{r}
+datos <- read_excel("inegi_subdata_Tarea_3.xlsx")
+
+```
+
+
+```{r}
+names(datos)
+```
+
+#### IGAE ~ Actividad_Industrial + IP_Consumidor_Subyacente
+```{r}
+modelo_igm <- lm(IGAE ~ Actividad_Industrial + IP_Consumidor_Subyacente, data = datos)
+
+
+```
+
+```{r}
+
+summary(modelo_igm)
+
+```
+## Grafica para una visualización mejor
+
+```{r webgl=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+scatter3d(IGAE ~ Actividad_Industrial + IP_Consumidor_Subyacente, data= inegi_data, fit="linear", residuals=TRUE, bg="white", axis.scales=TRUE, 
+  grid=TRUE, ellipsoid=FALSE)
+
+```
+
+## Explicación
+-Plano de regresión lineal: La gráfica incluye un ajuste lineal (un plano) que muestra la tendencia general de cómo la Actividad Industrial y el IP Consumidor Subyacente se relacionan conjuntamente con el IGAE.
+
+-Residuos: Las líneas verticales desde cada punto al plano indican la diferencia entre los valores observados y los predichos por el modelo lineal, permitiendo identificar qué tan bien el modelo explica la variación del IGAE.
+
+-Distribución de puntos: Si los puntos se agrupan cerca del plano, sugiere que la combinación de Actividad Industrial e IP Subyacente explica bien la variación del IGAE. Si hay mucha dispersión, existen otros factores relevantes no incluidos en el modelo.
+
+#### Actividades_Primarias ~ Importaciones_Totales + TIIE
+
+```{r}
+modelo_igm <- lm(Actividades_Primarias ~ Importaciones_Totales + TIIE
+, data = datos)
+
+
+```
+
+```{r}
+
+summary(modelo_igm)
+
+```
+
+
+## Grafica para una visualización mejor
+
+```{r webgl=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+scatter3d(Actividades_Primarias ~ Importaciones_Totales + TIIE, data= inegi_data, fit="linear", residuals=TRUE, bg="white", axis.scales=TRUE, 
+  grid=TRUE, ellipsoid=FALSE)
+
+```
+
+## Explicaión
+-La gráfica muestra cómo varía el nivel de las Actividades Primarias en función de dos factores clave: las Importaciones Totales y la TIIE. 
+
+-Actividades Primarias (variable dependiente, eje Y): Representa el desempeño del sector primario de la economía, que incluye agricultura, ganadería, pesca y minería.
+
+-Importaciones Totales (variable independiente, eje X): Mide el valor total de bienes y servicios importados, reflejando el nivel de apertura comercial y demanda externa.
+
+-TIIE (Tasa de Interés Interbancaria de Equilibrio) (variable independiente, eje Z): Es una tasa de referencia que indica el costo del dinero en el mercado interbancario, influenciada por la política monetaria.
+
+
+
+#### Actividades_Terciarias ~ Importaciones_No_Petroleras + Tipo_Cambio_Real_Multilateral
+
+```{r}
+modelo_igm <- lm(Actividades_Terciarias ~ Importaciones_No_Petroleras + Tipo_Cambio_Real_Multilateral, data = datos)
+
+
+```
+
+```{r}
+
+summary(modelo_igm)
+
+```
+
+
+## Grafica para una visualización mejor
+
+```{r webgl=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+scatter3d(Actividades_Terciarias ~ Importaciones_No_Petroleras + Tipo_Cambio_Real_Multilateral, data= inegi_data, fit="linear", residuals=TRUE, bg="white", axis.scales=TRUE, grid=TRUE, ellipsoid=FALSE)
+
+```
+`
+## Eplicación 
+-La gráfica presenta un plano de regresión lineal que modela cómo varían las Actividades Terciarias en función conjunta de las Importaciones No Petroleras y el Tipo de Cambio Real Multilateral. 
+-Un aumento en las importaciones no petroleras podría estar relacionado con un mayor dinamismo en el sector terciario, por ejemplo, al facilitar insumos o bienes que apoyan actividades comerciales y de servicios.
+
+-Cambios en el tipo de cambio real multilateral afectan la competitividad de los servicios exportables e importables, lo que puede influir en la producción del sector terciario.
+
+#### IVF_Construccion ~ Cetes_28_Dias + Reservas_Internacionales
+
+```{r}
+modelo_igm <- lm(IVF_Construccion ~ Cetes_28_Dias + Reservas_Internacionales, data = datos)
+
+
+```
+
+```{r}
+
+summary(modelo_igm)
+
+```
+
+
+## Grafica para una visualización mejor
+
+```{r webgl=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+scatter3d(IVF_Construccion ~ Cetes_28_Dias + Reservas_Internacionales, data= inegi_data, fit="linear", residuals=TRUE, bg="white", axis.scales=TRUE, grid=TRUE, ellipsoid=FALSE)
+
+```
+
+## Explicación
+-La gráfica muestra cómo varía el índice de volumen físico en construcción en función simultánea de la tasa de interés Cetes a 28 días y las reservas internacionales. 
+-Cetes 28 Días: Una tasa de interés más alta generalmente encarece el financiamiento, lo que puede reducir la inversión en construcción, reflejándose en una pendiente negativa respecto a esta variable.
+
+-Reservas Internacionales: Altas reservas suelen asociarse a mayor estabilidad económica y confianza, lo que puede fomentar la inversión en construcción, mostrando una pendiente positiva respecto a esta variable.
+
+
+
+
+
+
+
